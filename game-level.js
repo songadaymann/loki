@@ -1550,9 +1550,9 @@ class GameScene extends Phaser.Scene {
         this.seenZoneTypes[zoneType] = true;
         
         const instructions = {
-            verse: 'TAP TO JUMP',
-            chorus: 'TAP TO SHOOT • USE D-PAD TO MOVE',
-            bridge: 'TAP TO FLOAT'
+            verse: 'TAP/SPACE TO JUMP',
+            chorus: 'TAP/SPACE TO SHOOT • USE D-PAD TO MOVE',
+            bridge: 'TAP/SPACE TO FLOAT'
         };
         
         const text = instructions[zoneType];
