@@ -1550,9 +1550,9 @@ class GameScene extends Phaser.Scene {
         this.seenZoneTypes[zoneType] = true;
         
         const instructions = {
-            verse: 'PRESS SPACE OR A TO JUMP',
-            chorus: 'PRESS ←↑↓→ TO MOVE AND SPACE OR A TO SHOOT',
-            bridge: 'PRESS SPACE OR A TO FLOAT'
+            verse: 'TAP TO JUMP',
+            chorus: 'TAP TO SHOOT • USE D-PAD TO MOVE',
+            bridge: 'TAP TO FLOAT'
         };
         
         const text = instructions[zoneType];
@@ -2055,6 +2055,12 @@ class GameScene extends Phaser.Scene {
         // Show instructions on first entry to each zone type
         if (this.currentZone && (!prevZone || prevZone.type !== this.currentZone.type)) {
             this.showInstructions(this.currentZone.type);
+            
+            // Show/hide mobile D-pad based on zone type
+            const needsDpad = this.currentZone.type === 'chorus' || this.currentZone.type === 'bridge';
+            if (typeof showDpad === 'function') {
+                showDpad(needsDpad);
+            }
         }
         
         // Track chorus number (for difficulty scaling)
@@ -2366,11 +2372,11 @@ class GameScene extends Phaser.Scene {
             // SCHMUP MODE - Direct control, no gravity
             const schmupSpeed = 300;  // pixels per second
             
-            const vc = window.virtualControls || {};
-            if (this.schmupInput.up || vc.up) this.charCombined.y -= schmupSpeed * dt;
-            if (this.schmupInput.down || vc.down) this.charCombined.y += schmupSpeed * dt;
-            if (this.schmupInput.left || vc.left) this.charCombined.x -= schmupSpeed * dt;
-            if (this.schmupInput.right || vc.right) this.charCombined.x += schmupSpeed * dt;
+            const td = window.touchDpad || {};
+            if (this.schmupInput.up || td.up) this.charCombined.y -= schmupSpeed * dt;
+            if (this.schmupInput.down || td.down) this.charCombined.y += schmupSpeed * dt;
+            if (this.schmupInput.left || td.left) this.charCombined.x -= schmupSpeed * dt;
+            if (this.schmupInput.right || td.right) this.charCombined.x += schmupSpeed * dt;
             
             // Keep in bounds (screen space)
             const margin = 50;
@@ -2383,9 +2389,9 @@ class GameScene extends Phaser.Scene {
             const bridgeMoveSpeed = 250;
             
             // Left/right movement
-            const vcBridge = window.virtualControls || {};
-            if (this.schmupInput.left || vcBridge.left) this.charCombined.x -= bridgeMoveSpeed * dt;
-            if (this.schmupInput.right || vcBridge.right) this.charCombined.x += bridgeMoveSpeed * dt;
+            const td = window.touchDpad || {};
+            if (this.schmupInput.left || td.left) this.charCombined.x -= bridgeMoveSpeed * dt;
+            if (this.schmupInput.right || td.right) this.charCombined.x += bridgeMoveSpeed * dt;
             
             // Floaty vertical movement (gravity-based jumping)
             this.charCombined.y += this.velocityY * dt;
@@ -2562,60 +2568,116 @@ fetch('https://mann.cool/api/plays', {
 }).catch(() => {});
 
 // =============================================================================
-// MANN.COOL VIRTUAL CONTROLLER INTEGRATION
+// ON-SCREEN D-PAD FOR MOBILE (Chorus sections)
 // =============================================================================
 
-// Store virtual controller state
-window.virtualControls = {
+// Store touch D-pad state
+window.touchDpad = {
     up: false,
     down: false,
     left: false,
-    right: false,
-    action: false  // Universal action: jump/shoot/float depending on zone
+    right: false
 };
 
-window.addEventListener('message', (event) => {
-    const { type, key, eventType } = event.data || {};
+// Create D-pad overlay for mobile
+function createDpad() {
+    // Only create on touch devices
+    if (!('ontouchstart' in window)) return;
     
-    // Resume audio context if suspended (browser suspends when clicking outside iframe)
-    if (game && game.sound && game.sound.context) {
-        const audioContext = game.sound.context;
-        if (audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-    }
-    
-    // Handle keyboard events from mann.cool virtual controller
-    if (type === 'keyEvent' && key && eventType) {
-        const isDown = eventType === 'keydown';
-        
-        // Map keys to virtual controls
-        if (key === 'ArrowUp' || key === 'w' || key === 'W') {
-            window.virtualControls.up = isDown;
-        }
-        if (key === 'ArrowDown' || key === 's' || key === 'S') {
-            window.virtualControls.down = isDown;
-        }
-        if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
-            window.virtualControls.left = isDown;
-        }
-        if (key === 'ArrowRight' || key === 'd' || key === 'D') {
-            window.virtualControls.right = isDown;
-        }
-        // Space, Z, or X = Universal action (jump/shoot/float depending on zone)
-        if (key === ' ' || key === 'Space' || key === 'z' || key === 'x') {
-            window.virtualControls.action = isDown;
-            
-            // Dispatch as keyboard event for immediate response
-            if (isDown) {
-                document.dispatchEvent(new KeyboardEvent('keydown', {
-                    code: 'Space',
-                    key: ' ',
-                    bubbles: true,
-                    cancelable: true
-                }));
+    const dpad = document.createElement('div');
+    dpad.id = 'touch-dpad';
+    dpad.innerHTML = `
+        <style>
+            #touch-dpad {
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                width: 140px;
+                height: 140px;
+                z-index: 10000;
+                display: none;
+                pointer-events: auto;
+                user-select: none;
+                -webkit-user-select: none;
             }
+            #touch-dpad.visible {
+                display: block;
+            }
+            .dpad-btn {
+                position: absolute;
+                width: 50px;
+                height: 50px;
+                background: rgba(255, 255, 255, 0.3);
+                border: 2px solid rgba(255, 255, 255, 0.6);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                color: white;
+                text-shadow: 0 0 4px black;
+                transition: background 0.1s;
+            }
+            .dpad-btn.active {
+                background: rgba(255, 255, 255, 0.6);
+            }
+            .dpad-up { top: 0; left: 45px; }
+            .dpad-down { bottom: 0; left: 45px; }
+            .dpad-left { top: 45px; left: 0; }
+            .dpad-right { top: 45px; right: 0; }
+        </style>
+        <div class="dpad-btn dpad-up" data-dir="up">▲</div>
+        <div class="dpad-btn dpad-down" data-dir="down">▼</div>
+        <div class="dpad-btn dpad-left" data-dir="left">◀</div>
+        <div class="dpad-btn dpad-right" data-dir="right">▶</div>
+    `;
+    document.body.appendChild(dpad);
+    
+    // Touch handlers for D-pad buttons
+    const buttons = dpad.querySelectorAll('.dpad-btn');
+    buttons.forEach(btn => {
+        const dir = btn.dataset.dir;
+        
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.touchDpad[dir] = true;
+            btn.classList.add('active');
+        }, { passive: false });
+        
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.touchDpad[dir] = false;
+            btn.classList.remove('active');
+        }, { passive: false });
+        
+        btn.addEventListener('touchcancel', (e) => {
+            window.touchDpad[dir] = false;
+            btn.classList.remove('active');
+        });
+    });
+    
+    return dpad;
+}
+
+// Show/hide D-pad based on game mode
+function showDpad(visible) {
+    const dpad = document.getElementById('touch-dpad');
+    if (dpad) {
+        if (visible) {
+            dpad.classList.add('visible');
+        } else {
+            dpad.classList.remove('visible');
+            // Reset all directions when hiding
+            window.touchDpad.up = false;
+            window.touchDpad.down = false;
+            window.touchDpad.left = false;
+            window.touchDpad.right = false;
         }
     }
-});
+}
+
+// Create D-pad when page loads
+document.addEventListener('DOMContentLoaded', createDpad);
 
