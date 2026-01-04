@@ -379,11 +379,12 @@ const ITEM_TYPE_TO_TEXTURE = {
 
 // Item scales by category
 const ITEM_SCALES = {
-    rune_fehu: 0.25, rune_laguz: 0.25, rune_thurisaz: 0.25,
-    creature_sleipnir: 0.5, creature_fenrir: 0.5, creature_jormungandr: 0.5, creature_hel: 0.5,
-    atmo_aurora: 0.3, atmo_bifrost: 0.3, atmo_fire: 0.2, atmo_ice: 0.2, atmo_star: 0.15,
-    symbol_mjolnir: 0.25, symbol_raven: 0.2, symbol_runecircle: 0.2, symbol_valknut: 0.2,
-    symbol_longship: 0.25, symbol_yggdrasil: 0.3,
+    // Scales adjusted 4x to compensate for image optimization (1024→256px)
+    rune_fehu: 1.0, rune_laguz: 1.0, rune_thurisaz: 1.0,
+    creature_sleipnir: 2.0, creature_fenrir: 2.0, creature_jormungandr: 2.0, creature_hel: 2.0,
+    atmo_aurora: 1.2, atmo_bifrost: 1.2, atmo_fire: 0.8, atmo_ice: 0.8, atmo_star: 0.6,
+    symbol_mjolnir: 1.0, symbol_raven: 0.8, symbol_runecircle: 0.8, symbol_valknut: 0.8,
+    symbol_longship: 1.0, symbol_yggdrasil: 1.2,
 };
 
 const LEVEL_CONFIG = {
@@ -861,7 +862,7 @@ class GameScene extends Phaser.Scene {
         this.worldContainer.add(aged);
         
         // Place animated Loki sprites across the zone
-        const lokiScale = 0.35;  // Smaller scale to prevent overlap
+        const lokiScale = 1.1;  // Scale adjusted 3.2x for image optimization (1272→400px)
         const lokiSpacing = 500;  // More spacing between Lokis
         const numLokis = Math.ceil(width / lokiSpacing);
         
@@ -1034,7 +1035,7 @@ class GameScene extends Phaser.Scene {
                 
                 const x = LEVEL_CONFIG.timeToX(item.time);
                 const y = item.y * h; // Convert normalized Y to screen Y
-                const scale = ITEM_SCALES[item.type] || 0.25;
+                const scale = ITEM_SCALES[item.type] || 1.0;  // Default adjusted 4x for optimization
                 
                 const sprite = this.add.image(x, y, textureKey);
                 sprite.setScale(scale);
@@ -1067,7 +1068,7 @@ class GameScene extends Phaser.Scene {
                 const runeKey = runeKeys[i % runeKeys.length];
                 
                 const rune = this.add.image(x, y, runeKey);
-                rune.setScale(0.25);
+                rune.setScale(1.0);  // Adjusted 4x for image optimization
                 rune.setAlpha(0.9);
                 this.worldContainer.add(rune);
                 
@@ -1141,7 +1142,7 @@ class GameScene extends Phaser.Scene {
             const x = dropStart + (i + 1) * (dropWidth / 4);
             const y = h / 2 + (Math.random() - 0.5) * 150;
             const sprite = this.add.image(x, y, key);
-            sprite.setScale(0.25);
+            sprite.setScale(1.0);  // Adjusted 4x for image optimization
             sprite.setAlpha((x - dropStart) / dropWidth * 0.6);
             this.worldContainer.add(sprite);
         });
@@ -1201,7 +1202,7 @@ class GameScene extends Phaser.Scene {
             const x = startX + (i + 1) * (approachWidth / 3);
             const y = h / 2 + (Math.random() - 0.5) * 150;
             const sprite = this.add.image(x, y, key);
-            sprite.setScale(0.25);
+            sprite.setScale(1.0);  // Adjusted 4x for image optimization
             sprite.setAlpha((1 - (x - startX) / approachWidth) * 0.5);
             this.worldContainer.add(sprite);
         });
@@ -1510,7 +1511,7 @@ class GameScene extends Phaser.Scene {
         
         // TERF counter with image
         this.terfIcon = this.add.image(this.scale.width - 100, 60, 'terf1');
-        this.terfIcon.setScale(0.15);
+        this.terfIcon.setScale(0.3);  // Adjusted 2x for image optimization (812→400px)
         this.terfIcon.setScrollFactor(0);
         this.terfIcon.setDepth(1000);
         
@@ -1878,7 +1879,7 @@ class GameScene extends Phaser.Scene {
                 const startX = w + 100 + i * spacing;
                 
                 const enemy = this.add.sprite(startX, lineY, 'terf1_1');
-                enemy.setScale(0.4);  // Bigger TERFs!
+                enemy.setScale(0.8);  // Adjusted 2x for image optimization (812→400px)
                 enemy.play('terf_fly');
                 
                 // Movement properties
@@ -1943,7 +1944,7 @@ class GameScene extends Phaser.Scene {
     
     createExplosion(x, y) {
         const explosion = this.add.sprite(x, y, 'explosion_0');
-        explosion.setScale(0.3);  // Adjust size
+        explosion.setScale(0.6);  // Adjusted 2x for image optimization (356→180px)
         explosion.play('explosion');
         
         // Remove after animation completes
