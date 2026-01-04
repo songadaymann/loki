@@ -714,6 +714,7 @@ class GameScene extends Phaser.Scene {
         this.isDead = false;
         this.worldX = 0;  // Current world scroll position
         this.currentZone = null;
+        this.seenZoneTypes = {};  // Track which zone types player has seen (for instructions)
         
         // Physics state
         this.velocityY = 0;
@@ -1450,27 +1451,11 @@ class GameScene extends Phaser.Scene {
             if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.schmupInput.left = true;
             if (e.code === 'ArrowRight' || e.code === 'KeyD') this.schmupInput.right = true;
             
-            // Space or Z: Jump in verse/bridge, Shoot in chorus
-            if ((e.code === 'Space' || e.code === 'KeyZ') && !e.repeat) {
+            // Universal action button: Space, Z, or X
+            // Verse: Jump | Chorus: Shoot | Bridge: Float/Jump
+            if ((e.code === 'Space' || e.code === 'KeyZ' || e.code === 'KeyX') && !e.repeat) {
                 e.preventDefault();
-                if (this.currentZone?.type === 'chorus') {
-                    // Chorus: shoot
-                    this.shoot();
-                } else if (this.currentZone?.type === 'bridge') {
-                    // Bridge: jump (floaty)
-                    this.jump();
-                } else {
-                    // Verse/other: jump
-                    this.jump();
-                }
-            }
-            
-            // X: Also shoots (for virtual controller)
-            if (e.code === 'KeyX' && !e.repeat) {
-                e.preventDefault();
-                if (this.isInSchmupMode()) {
-                    this.shoot();
-                }
+                this.doAction();
             }
         });
         
@@ -1540,8 +1525,49 @@ class GameScene extends Phaser.Scene {
         this.terfCounterText.setScrollFactor(0);
         this.terfCounterText.setDepth(1000);
         
+        // Instruction text (shows on first entry to each zone type)
+        this.instructionText = this.add.text(this.scale.width / 2, this.scale.height - 60, '', {
+            fontFamily: '"Bebas Neue", "Arial Black", sans-serif',
+            fontSize: '36px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 5,
+            align: 'center'
+        });
+        this.instructionText.setOrigin(0.5);
+        this.instructionText.setScrollFactor(0);
+        this.instructionText.setDepth(1000);
+        this.instructionText.setAlpha(0);
+        
         // Lyrics display
         this.createLyricsDisplay();
+    }
+    
+    showInstructions(zoneType) {
+        // Only show once per zone type
+        if (this.seenZoneTypes[zoneType]) return;
+        this.seenZoneTypes[zoneType] = true;
+        
+        const instructions = {
+            verse: 'PRESS SPACE OR A TO JUMP',
+            chorus: 'PRESS ←↑↓→ TO MOVE AND SPACE OR A TO SHOOT',
+            bridge: 'PRESS SPACE OR A TO FLOAT'
+        };
+        
+        const text = instructions[zoneType];
+        if (!text) return;
+        
+        this.instructionText.setText(text);
+        this.instructionText.setAlpha(1);
+        
+        // Fade out after 3 seconds
+        this.tweens.add({
+            targets: this.instructionText,
+            alpha: 0,
+            delay: 3000,
+            duration: 1000,
+            ease: 'Power2'
+        });
     }
     
     createLyricsDisplay() {
@@ -1723,6 +1749,16 @@ class GameScene extends Phaser.Scene {
             this.charWhite.setAlpha(charAlpha);
             this.charBlack.setAlpha(charAlpha);
             this.charCombined.setAlpha(charAlpha);
+        }
+    }
+    
+    // Universal action - context-sensitive based on current zone
+    doAction() {
+        if (this.currentZone?.type === 'chorus') {
+            this.shoot();
+        } else {
+            // Verse, bridge, or any other zone: jump
+            this.jump();
         }
     }
     
@@ -2014,6 +2050,11 @@ class GameScene extends Phaser.Scene {
         // Determine current zone
         const prevZone = this.currentZone;
         this.currentZone = this.getCurrentZone();
+        
+        // Show instructions on first entry to each zone type
+        if (this.currentZone && (!prevZone || prevZone.type !== this.currentZone.type)) {
+            this.showInstructions(this.currentZone.type);
+        }
         
         // Track chorus number (for difficulty scaling)
         if (this.currentZone && this.currentZone.type === 'chorus' && 
@@ -2529,8 +2570,7 @@ window.virtualControls = {
     down: false,
     left: false,
     right: false,
-    jump: false,
-    fire: false
+    action: false  // Universal action: jump/shoot/float depending on zone
 };
 
 window.addEventListener('message', (event) => {
@@ -2561,29 +2601,15 @@ window.addEventListener('message', (event) => {
         if (key === 'ArrowRight' || key === 'd' || key === 'D') {
             window.virtualControls.right = isDown;
         }
-        // Space or 'z' = Jump
-        if (key === ' ' || key === 'Space' || key === 'z') {
-            window.virtualControls.jump = isDown;
+        // Space, Z, or X = Universal action (jump/shoot/float depending on zone)
+        if (key === ' ' || key === 'Space' || key === 'z' || key === 'x') {
+            window.virtualControls.action = isDown;
             
-            // Also dispatch as keyboard event for immediate response
+            // Dispatch as keyboard event for immediate response
             if (isDown) {
                 document.dispatchEvent(new KeyboardEvent('keydown', {
                     code: 'Space',
                     key: ' ',
-                    bubbles: true,
-                    cancelable: true
-                }));
-            }
-        }
-        // 'x' = Fire
-        if (key === 'x') {
-            window.virtualControls.fire = isDown;
-            
-            // Also dispatch as keyboard event for immediate response
-            if (isDown) {
-                document.dispatchEvent(new KeyboardEvent('keydown', {
-                    code: 'KeyX',
-                    key: 'x',
                     bubbles: true,
                     cancelable: true
                 }));
