@@ -2492,16 +2492,16 @@ class GameScene extends Phaser.Scene {
 const config = {
     type: Phaser.AUTO,
     parent: 'game-container',
-    width: window.innerWidth,
-    height: window.innerHeight,
     backgroundColor: '#1a1a2e',
     pauseOnBlur: false,  // Critical for mann.cool virtual controller
     pixelArt: true,
     roundPixels: true,
     antialias: false,
     scale: {
-        mode: Phaser.Scale.RESIZE,
+        mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 1280,
+        height: 720,
     },
     render: {
         pixelArt: true,
