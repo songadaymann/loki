@@ -4,7 +4,7 @@
 // =============================================================================
 
 const DEBUG_OPTIONS = {
-    showDebugInfo: true,
+    showDebugInfo: false,
     showZoneBorders: false,    // Show where zones start/end
     showHitboxes: false,
     skipToTime: null,         // Set to seconds to skip ahead
@@ -424,6 +424,76 @@ class BootScene extends Phaser.Scene {
     }
     
     preload() {
+        const w = this.scale.width;
+        const h = this.scale.height;
+        const seamY = h / 2;
+        
+        // Create split background
+        const topBg = this.add.rectangle(w/2, seamY/2, w, seamY, 0x000000);
+        const bottomBg = this.add.rectangle(w/2, seamY + seamY/2, w, seamY, 0xffffff);
+        
+        // Loading bar background
+        const barWidth = 300;
+        const barHeight = 20;
+        const barBg = this.add.rectangle(w/2, seamY, barWidth + 4, barHeight + 4, 0x333333);
+        const barFill = this.add.rectangle(w/2 - barWidth/2, seamY, 0, barHeight, 0x00ff88);
+        barFill.setOrigin(0, 0.5);
+        
+        // Loading text
+        const loadingText = this.add.text(w/2, seamY - 40, 'LOADING...', {
+            fontFamily: 'Arial Black, sans-serif',
+            fontSize: '24px',
+            color: '#ffcc00',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        
+        // Animated "Loki" rectangles (placeholders until sprites load)
+        const whiteLoki = this.add.rectangle(50, seamY - 30, 30, 50, 0xffffff);
+        whiteLoki.setStrokeStyle(2, 0x000000);
+        const blackLoki = this.add.rectangle(50, seamY + 30, 30, 50, 0x000000);
+        blackLoki.setStrokeStyle(2, 0xffffff);
+        
+        // Animate the Lokis running across
+        this.tweens.add({
+            targets: [whiteLoki, blackLoki],
+            x: w - 50,
+            duration: 3000,
+            ease: 'Linear',
+            repeat: -1,
+            yoyo: true
+        });
+        
+        // Bounce animation
+        this.tweens.add({
+            targets: whiteLoki,
+            y: seamY - 40,
+            duration: 200,
+            ease: 'Sine.easeInOut',
+            repeat: -1,
+            yoyo: true
+        });
+        this.tweens.add({
+            targets: blackLoki,
+            y: seamY + 40,
+            duration: 200,
+            ease: 'Sine.easeInOut',
+            repeat: -1,
+            yoyo: true,
+            delay: 100
+        });
+        
+        // Update loading bar on progress
+        this.load.on('progress', (value) => {
+            barFill.width = barWidth * value;
+            loadingText.setText(`LOADING... ${Math.floor(value * 100)}%`);
+        });
+        
+        this.load.on('complete', () => {
+            loadingText.setText('READY!');
+        });
+        
+        // Now load all assets
         this.load.audio('song', 'assets/song/loki-genderfluid.mp3');
         
         // Load character sprites
