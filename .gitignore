@@ -1,0 +1,35 @@
+# Environment and secrets
+.env
+
+# OS files
+.DS_Store
+**/.DS_Store
+
+# Editor/development files
+editor*.html
+physics-test.html
+
+# Old/backup game files
+game.js
+
+# Python scripts (development tools)
+*.py
+
+# Source/reference materials
+human-materials-ignore/
+
+# Screenshots
+Screenshot*.png
+
+# Documentation (not needed for game)
+*.md
+*.txt
+
+# JSON source files (we use the .js versions)
+lyrics-timing.json
+games.json
+
+# Symlinks
+GAME_INTEGRATION.md
+agents.md
+games.json
